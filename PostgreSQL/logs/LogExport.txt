@@ -1,0 +1,5 @@
+[2016-01-06 13:22:19] [Msg] Table Type - Text file
+[2016-01-06 13:22:19] [Msg] Getting and Exporting data ...
+[2016-01-06 13:22:19] [Msg] Export table [campaign_tracking]
+[2016-01-06 13:22:19] [Msg] Export to - C:\Users\mmallison\Desktop\campaign_tracking.csv
+[2016-01-06 13:22:20] [Msg] Finished - Successfully

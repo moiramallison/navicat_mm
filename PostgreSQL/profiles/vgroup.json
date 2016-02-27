@@ -1,0 +1,345 @@
+{
+	"version" : "1.1",
+	"vgroups" : [ ],
+	"connections" : [
+		{
+			"conn_name" : "dwh-dev",
+			"conn_type" : "PGSQL",
+			"vgroups" : [ ],
+			"catalogs" : [
+				{
+					"catalog_name" : "dwh_dev",
+					"schemas" : [
+						{
+							"schema_name" : "moiram",
+							"vgroups" : [
+								{
+									"vgroup_name" : "cosmic disclosure",
+									"vgroup_type" : "TABLE",
+									"items" : [
+										{
+											"name" : "cd_video_d_tmp",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "first_july_video",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "first_video_engagement",
+											"type" : "TABLE"
+										}
+									]
+								},
+								{
+									"vgroup_name" : "gaiam prospect offers",
+									"vgroup_type" : "TABLE",
+									"items" : [
+										{
+											"name" : "SENT_ACTIVE_MY_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_MY_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_MY_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_NULL_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_NULL_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_NULL_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_SG_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_SG_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_SG_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_ST_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_ST_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_ACTIVE_ST_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_MY_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_MY_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_MY_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_NULL_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_NULL_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_NULL_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_SG_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_SG_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_SG_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_ST_T1_3MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_ST_T1_6MONS",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "SENT_INACTIVE_ST_T1_BASIC",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "gaiam_prospect_offers",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "gaiam_prospect_offers_raw",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "gaiam_prospect_offers_tmp",
+											"type" : "TABLE"
+										}
+									]
+								},
+								{
+									"vgroup_name" : "guides",
+									"vgroup_type" : "TABLE",
+									"items" : [
+										{
+											"name" : "guide_tenure",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "video_views_moga",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_opt_ins",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "moga_sub_master",
+											"type" : "TABLE"
+										}
+									]
+								},
+								{
+									"vgroup_name" : "sfss",
+									"vgroup_type" : "TABLE",
+									"items" : [
+										{
+											"name" : "active_subs",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_activity_master",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_activity_smry",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "video_views_smry",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "video_xforms_cube",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_day_comp_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_day_completes",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_optins_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_ponr",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_views",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_views_agg",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "guide_views2",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "sub_targets",
+											"type" : "TABLE"
+										}
+									]
+								},
+								{
+									"vgroup_name" : "st churn insights",
+									"vgroup_type" : "TABLE",
+									"items" : [
+										{
+											"name" : "st_guide_activity_master",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "st_guide_day_comp_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "st_guide_optins_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "st_sfss_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "st_sub_master_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "st_video_views_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "st_video_views_master",
+											"type" : "TABLE"
+										}
+									]
+								},
+								{
+									"vgroup_name" : "yoga churn insights",
+									"vgroup_type" : "TABLE",
+									"items" : [
+										{
+											"name" : "sfss_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "sub_master_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "video_views_30_60_90",
+											"type" : "TABLE"
+										},
+										{
+											"name" : "sub_master",
+											"type" : "TABLE"
+										}
+									]
+								},
+								{
+									"vgroup_name" : "cosmic disclosure",
+									"vgroup_type" : "QUERY",
+									"items" : [
+										{
+											"name" : "cd_video",
+											"type" : "QUERY"
+										},
+										{
+											"name" : "cd_video_tmp",
+											"type" : "QUERY"
+										},
+										{
+											"name" : "cosmic anomalies",
+											"type" : "QUERY"
+										},
+										{
+											"name" : "users_cd_tmp view",
+											"type" : "QUERY"
+										},
+										{
+											"name" : "cd_user_status_snapshot",
+											"type" : "QUERY"
+										},
+										{
+											"name" : "cosmic disclosure master query",
+											"type" : "QUERY"
+										}
+									]
+								}
+							]
+						}
+					],
+					"vgroups" : [ ]
+				}
+			]
+		},
+		{
+			"conn_name" : "dwh-prod",
+			"conn_type" : "PGSQL",
+			"vgroups" : [ ],
+			"catalogs" : [
+				{
+					"catalog_name" : "dwh_prod",
+					"schemas" : [
+						{
+							"schema_name" : "moiram",
+							"vgroups" : [
+								{
+									"vgroup_name" : "cosmic disclosure",
+									"vgroup_type" : "QUERY",
+									"items" : [ ]
+								}
+							]
+						}
+					],
+					"vgroups" : [ ]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,7 @@
+[2016-01-28 12:56:26] [Msg] Import start
+[2016-01-28 12:56:26] [Msg] Import type - CSV file
+[2016-01-28 12:56:26] [Msg] Import from - C:\Users\mmallison\Documents\Data\ConsciousCleanse1.27.csv
+[2016-01-28 12:56:28] [Msg] Create table [ConsciousCleanse1.27]
+[2016-01-28 12:56:28] [Msg] Import table [ConsciousCleanse1.27]
+[2016-01-28 12:56:31] [Msg] Processed:2582, Added:2582, Updated:0, Deleted:0, Errors:0
+[2016-01-28 12:56:31] [Msg] Finished - Successfully

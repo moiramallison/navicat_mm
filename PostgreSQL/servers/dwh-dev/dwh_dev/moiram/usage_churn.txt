@@ -1,0 +1,570 @@
+drop table if exists tmp.tenure_segment_subs;
+
+
+create table tmp.tenure_segment_subs as
+select t3.*,
+   case when paid_through_age >= 28 then 1 else 0 end sub_30_day,
+   case when paid_through_age >= 58 and
+             anniversary_60_date < '2016-01-15'::date and
+             churn_30_day = 0 
+        then 1 
+        else  churn_60_day  -- if they are counted as a churner, make sure they are counted as a sub
+   end sub_60_day,
+   case when paid_through_age >= 88 and
+             anniversary_90_date < '2016-01-15'::date and
+             churn_60_day = 0 
+        then 1 
+        else churn_90_day   -- if they are counted as a churner, make sure they are counted as a sub
+   end sub_90_day
+from
+   (select t2.*,
+       case when cancel_age <= 34 then 1 
+                        when paid_through_age <= 31 and cancel_age is not null then 1
+            when cancel_age between 118 and 122 AND
+                 long_hold = 1 then 1 
+            else 0
+       end   churn_30_day,
+       case when cancel_age >  34 and cancel_age <= 64 then 1 
+            when paid_through_age > 31 and paid_through_age  <= 61 and cancel_age is not null then 1
+            when cancel_age between 148 and 152 AND
+                 long_hold = 1 then 1 
+            else 0
+       end   churn_60_day,
+       case when cancel_age >  64 and cancel_age <= 94 then 1 
+            when paid_through_age > 61 and paid_through_age  <= 91 and cancel_age is not null then 1
+            when cancel_age between 178 and 182 AND
+                 long_hold = 1 then 1 
+            else 0
+       end   churn_90_day
+    from
+        (select t1.*,
+           case when hold_age > 15  
+            then 1
+            else 0
+           end long_hold
+        from
+        (select gcsi_user_id, drupal_user_id, 
+           subscription_id, 
+           onboarding_segment,
+           onboarding_parent,
+           user_behavior_segment, 
+           campaign_dept,
+           case when status = 'Hold'
+                then '2016-01-15'::date - valid_from 
+           end hold_age,
+           subscription_start_date::date subscription_start_date,
+           cancel_date::date cancel_date,
+           paid_through_date::date, 
+           subscription_start_date::date + 30 anniversary_30_date,
+           subscription_start_date::date + 60 anniversary_60_date,
+           subscription_start_date::date + 90 anniversary_90_date,
+           subscription_start_date::date + 1200 anniversary_120_date,
+           cancel_date::date - subscription_start_date::date cancel_age,
+           paid_through_date::date - subscription_start_date::date paid_through_age,
+           '2015-12-15'::date - subscription_start_date::date iv_age
+        from common.current_users
+        where plan_id = 21891276
+          and winback = 'New User'
+          and subscription_start_date <= '2015-12-15'
+           and (onboarding_parent = 'Yoga' or 
+                user_behavior_segment = 'My Yoga' OR
+                source_name = 'MYO')) t1
+        where paid_through_age > 0) t2 )t3
+;
+
+
+
+drop table if exists video_views_master;
+drop table if exists video_view_days;
+drop table if exists video_views_30_60_90;
+
+create table video_views_30_60_90 as 
+select
+    drupal_user_id,
+    period, 
+    coalesce(vxc.num_views,0)                       num_views,
+    coalesce(vxc.num_days_watched,0)                num_days_watched,
+    coalesce(vxc.hrs_watched,0)                     hrs_watched,
+    coalesce(vxc.engagement_ratio,0)                engagement_ratio,
+    coalesce(vxc.yoga_engagement_ratio,0)           yoga_engagement_ratio,
+    coalesce(vxc.sg_engagement_ratio,0)             sg_engagement_ratio,
+    coalesce(vxc.st_engagement_ratio,0)             st_engagement_ratio,
+    coalesce(vxc.level_1_views,0)                   level_1_views,
+    coalesce(vxc.level_1_watched,0)                 level_1_watched,
+    coalesce(vxc.level_2_views,0)                   level_2_views,
+    coalesce(vxc.level_2_watched,0)                 level_2_watched,
+    coalesce(vxc.level_3_views,0)                   level_3_views,
+    coalesce(vxc.level_3_watched,0)                 level_3_watched,
+    coalesce(vxc.duration_lt_15_views,0)            duration_lt_15_views,
+    coalesce(vxc.duration_lt_15_watched,0)          duration_lt_15_watched,
+    coalesce(vxc.duration_15_to_29_views,0)         duration_15_to_29_views,
+    coalesce(vxc.duration_15_to_29_watched,0)       duration_15_to_29_watched,
+    coalesce(vxc.duration_30_to_59_views,0)         duration_30_to_59_views,
+    coalesce(vxc.duration_30_to_59_watched,0)       duration_30_to_59_watched,
+    coalesce(vxc.duration_ge_60_views,0)            duration_ge_60_views,
+    coalesce(vxc.duration_ge_60_watched,0)          duration_ge_60_watched,
+    coalesce(vxc.yoga_views,0)                      yoga_views,
+    coalesce(vxc.yoga_watched,0)                    yoga_watched,
+    coalesce(vxc.sg_views,0)                        sg_views,
+    coalesce(vxc.sg_watched,0)                      sg_watched,
+    coalesce(vxc.st_views,0)                        st_views,
+    coalesce(vxc.st_watched,0)                      st_watched,
+    coalesce(vxc.guide_day_views,0)                 guide_day_views,
+    coalesce(vxc.first_quartile_complete_rat,0)     first_quartile_complete_rat,
+    coalesce(vxc.second_quartile_complete_rat,0)    second_quartile_complete_rat,
+    coalesce(vxc.third_quartile_complete_rat,0)     third_quartile_complete_rat,
+    coalesce(vxc.fourth_quartile_complete_rat,0)    fourth_quartile_complete_rat
+from
+    (select drupal_user_id,
+       period,
+       sum(num_views)               num_views, 
+       count(distinct created_date) num_days_watched, 
+       round(sum(watched)/3600,5)   hrs_watched,
+       case when sum(duration) > 0
+            then round(sum(watched)/sum(duration),5)                  
+            else 0
+       end                                                  engagement_ratio,
+       case when sum(yoga_video_duration) > 0
+            then round(sum(yoga_watched)/sum(yoga_video_duration),5)
+            else 0
+       end                                                  yoga_engagement_ratio,
+       case when sum(sg_video_duration) > 0
+            then round(sum(sg_watched)/sum(sg_video_duration),5)
+            else 0
+       end                                                  sg_engagement_ratio,
+          case when sum(st_video_duration) > 0
+            then round(sum(st_watched)/sum(st_video_duration),5)
+            else 0
+       end                                                  st_engagement_ratio,
+       sum(level_1_views)                                   level_1_views, 
+       sum(level_1_watched)                                 level_1_watched,   
+       sum(level_2_views)                                   level_2_views,   
+       sum(level_2_watched)                                 level_2_watched,
+       sum(level_3_views)                                   level_3_views,
+       sum(level_3_watched)                                 level_3_watched,
+       sum(duration_lt_15_views)                            duration_lt_15_views,
+       sum(duration_lt_15_watched)                          duration_lt_15_watched, 
+       sum(duration_15_to_29_views)                         duration_15_to_29_views,
+       sum(duration_15_to_29_watched)                       duration_15_to_29_watched,  
+       sum(duration_30_to_59_views)                         duration_30_to_59_views,
+       sum(duration_30_to_59_watched)                       duration_30_to_59_watched,  
+       sum(duration_ge_60_views)                            duration_ge_60_views,
+       sum(duration_ge_60_watched)                          duration_ge_60_watched,
+       sum(yoga_views)                                      yoga_views,
+       sum(yoga_watched)                                    yoga_watched,
+       sum(sg_views)                                        sg_views,
+       sum(sg_watched)                                      sg_watched,
+       sum(st_views)                                        st_views,
+       sum(st_watched)                                      st_watched,
+       sum(guide_day_views)                                 guide_day_views,
+       sum(first_quartile_complete_rat)                     first_quartile_complete_rat,
+       sum(second_quartile_complete_rat)                    second_quartile_complete_rat,
+       sum(third_quartile_complete_rat)                     third_quartile_complete_rat,
+       sum(fourth_quartile_complete_rat)                    fourth_quartile_complete_rat
+    from
+    (select vv.*,
+            case when view_30_day = 1 then 1
+                 when view_60_day =1 then 2
+                 when view_90_day = 1 then 3
+                 else 0
+            end period,
+            case when completion_ratio <= .25 then 1 else 0 end     first_quartile_complete_rat,
+            case when completion_ratio >  .25 
+                  and completion_ratio <= .5 then 1 else 0 end      second_quartile_complete_rat,
+            case when completion_ratio > .5 
+                  and completion_ratio <= .75 then 1 else 0 end     third_quartile_complete_rat,
+            case when completion_ratio > .75 then 1 else 0 end      fourth_quartile_complete_rat
+    from
+        (select vdc.user_id drupal_user_id,
+           vdc.created_date,
+           vdc.num_views, 
+           vdc.watched, 
+           vdc.completion_ratio,
+           v.duration,
+           case when vdc.created_date <= sm3.anniversary_30_date then 1 else 0 end      view_30_day,
+           case when vdc.created_date <= sm3.anniversary_60_date then 1 else 0 end      view_60_day,
+           case when vdc.created_date <= sm3.anniversary_90_date then 1 else 0 end      view_90_day,
+           case when fl.level_1 = 1 then num_views else 0 end                           level_1_views,
+           case when fl.level_1 = 1 then watched else 0 end                             level_1_watched,
+           case when fl.level_2 = 1 then num_views else 0 end                           level_2_views,
+           case when fl.level_2 = 1 then watched else 0 end                             level_2_watched,
+           case when fl.level_3 = 1 then num_views else 0 end                           level_3_views,
+           case when fl.level_3 = 1 then watched else 0 end                             level_3_watched,
+           case when facet_duration = '0-14 minutes' then num_views else 0 end          duration_lt_15_views,
+           case when facet_duration = '0-14 minutes' then watched else 0 end            duration_lt_15_watched, 
+           case when facet_duration = '15-29 minutes' then num_views else 0 end         duration_15_to_29_views,
+           case when facet_duration = '15-29 minutes' then watched else 0 end           duration_15_to_29_watched,  
+           case when facet_duration = '30-59 minutes' then num_views else 0 end         duration_30_to_59_views,
+           case when facet_duration = '30-59 minutes' then watched else 0 end           duration_30_to_59_watched,  
+           case when facet_duration = '60+ minutes' then num_views else 0 end           duration_ge_60_views,
+           case when facet_duration = '60+ minutes' then watched else 0 end             duration_ge_60_watched,
+           case when reporting_segment = 'My Yoga' then num_views else 0 end            yoga_views,
+           case when reporting_segment = 'My Yoga' then watched else 0 end              yoga_watched,
+           case when reporting_segment = 'My Yoga' then duration else 0 end             yoga_video_duration,
+           case when reporting_segment = 'Spiritual Growth' then num_views else 0 end   sg_views,
+           case when reporting_segment = 'Spiritual Growth' then watched else 0 end     sg_watched,
+           case when reporting_segment = 'Spiritual Growth' then duration else 0 end    sg_video_duration,
+           case when reporting_segment = 'Seeking Truth' then num_views else 0 end      st_views,
+           case when reporting_segment = 'Seeking Truth' then watched else 0 end        st_watched,
+           case when reporting_segment = 'Seeking Truth' then duration else 0 end       st_video_duration,
+           case when guide_day is null then 0 else 1 end                                guide_day_views
+        from sub_master_30_60_90 sm3
+        left join  common.video_daily_cube vdc
+            on sm3.drupal_user_id = vdc.user_id
+        left join common.video_d v
+           on vdc.media_nid = v.media_nid
+        left join common.facet_levels fl 
+           on v.facet_level_gid = fl.gid
+        left join common.guide_d g
+           on vdc.media_nid = g.media_nid) vv ) v2
+    group by drupal_user_id, period) vxc;
+
+   
+
+create table video_views_master as
+select 
+    v1.drupal_user_id,
+    v1.num_views                       num_views_1,                             
+    v1.hrs_watched                     hrs_watched_1,
+    v1.engagement_ratio                engagement_ratio_1,
+    v1.yoga_engagement_ratio           yoga_engagement_ratio_1,
+    v1.sg_engagement_ratio             sg_engagement_ratio_1,
+    v1.st_engagement_ratio             st_engagement_ratio_1,
+    v1.level_1_views                   level_1_views_1,
+    v1.level_1_watched                 level_1_watched_1,
+    v1.level_2_views                   level_2_views_1,
+    v1.level_2_watched                 level_2_watched_1,
+    v1.level_3_views                   level_3_views_1,
+    v1.level_3_watched                 level_3_watched_1,
+    v1.duration_lt_15_views            duration_lt_15_views_1,
+    v1.duration_lt_15_watched          duration_lt_15_watched_1,
+    v1.duration_15_to_29_views         duration_15_to_29_views_1,
+    v1.duration_15_to_29_watched       duration_15_to_29_watched_1,
+    v1.duration_30_to_59_views         duration_30_to_59_views_1,
+    v1.duration_30_to_59_watched       duration_30_to_59_watched_1,
+    v1.duration_ge_60_views            duration_ge_60_views_1,
+    v1.duration_ge_60_watched          duration_ge_60_watched_1,
+    v1.yoga_views                      yoga_views_1,
+    v1.yoga_watched                    yoga_watched_1,
+    v1.sg_views                        sg_views_1,
+    v1.sg_watched                      sg_watched_1,
+    v1.st_views                        st_views_1,
+    v1.st_watched                      st_watched_1,
+    v1.guide_day_views                 guide_day_views_1,
+    v1.first_quartile_complete_rat     first_quartile_complete_rat_1,
+    v1.second_quartile_complete_rat    second_quartile_complete_rat_1,
+    v1.third_quartile_complete_rat    third_quartile_complete_rat_1,
+    v1.fourth_quartile_complete_rat    fourth_quartile_complete_rat_1,
+    v1.num_days_watched               num_days_watched_1,
+    v2.num_views                       num_views_2,                             
+    v2.hrs_watched                     hrs_watched_2,
+    v2.engagement_ratio                engagement_ratio_2,
+    v2.yoga_engagement_ratio           yoga_engagement_ratio_2,
+    v2.sg_engagement_ratio             sg_engagement_ratio_2,
+    v2.st_engagement_ratio             st_engagement_ratio_2,
+    v2.level_1_views                   level_1_views_2,
+    v2.level_1_watched                 level_1_watched_2,
+    v2.level_2_views                   level_2_views_2,
+    v2.level_2_watched                 level_2_watched_2,
+    v2.level_3_views                   level_3_views_2,
+    v2.level_3_watched                 level_3_watched_2,
+    v2.duration_lt_15_views            duration_lt_15_views_2,
+    v2.duration_lt_15_watched          duration_lt_15_watched_2,
+    v2.duration_15_to_29_views         duration_15_to_29_views_2,
+    v2.duration_15_to_29_watched       duration_15_to_29_watched_2,
+    v2.duration_30_to_59_views         duration_30_to_59_views_2,
+    v2.duration_30_to_59_watched       duration_30_to_59_watched_2,
+    v2.duration_ge_60_views            duration_ge_60_views_2,
+    v2.duration_ge_60_watched          duration_ge_60_watched_2,
+    v2.yoga_views                      yoga_views_2,
+    v2.yoga_watched                    yoga_watched_2,
+    v2.sg_views                        sg_views_2,
+    v2.sg_watched                      sg_watched_2,
+    v2.st_views                        st_views_2,
+    v2.st_watched                      st_watched_2,
+    v2.guide_day_views                 guide_day_views_2,
+    v2.first_quartile_complete_rat     first_quartile_complete_rat_2,
+    v2.second_quartile_complete_rat    second_quartile_complete_rat_2,
+    v2.third_quartile_complete_rat    third_quartile_complete_rat_2,
+    v2.fourth_quartile_complete_rat    fourth_quartile_complete_rat_2,
+    v2.num_days_watched               num_days_watched_2,
+    v3.num_views                       num_views_3,                             
+    v3.hrs_watched                     hrs_watched_3,
+    v3.engagement_ratio                engagement_ratio_3,
+    v3.yoga_engagement_ratio           yoga_engagement_ratio_3,
+    v3.sg_engagement_ratio             sg_engagement_ratio_3,
+    v3.st_engagement_ratio             st_engagement_ratio_3,
+    v3.level_1_views                   level_1_views_3,
+    v3.level_1_watched                 level_1_watched_3,
+    v3.level_2_views                   level_2_views_3,
+    v3.level_2_watched                 level_2_watched_3,
+    v3.level_3_views                   level_3_views_3,
+    v3.level_3_watched                 level_3_watched_3,
+    v3.duration_lt_15_views            duration_lt_15_views_3,
+    v3.duration_lt_15_watched          duration_lt_15_watched_3,
+    v3.duration_15_to_29_views         duration_15_to_29_views_3,
+    v3.duration_15_to_29_watched       duration_15_to_29_watched_3,
+    v3.duration_30_to_59_views         duration_30_to_59_views_3,
+    v3.duration_30_to_59_watched       duration_30_to_59_watched_3,
+    v3.duration_ge_60_views            duration_ge_60_views_3,
+    v3.duration_ge_60_watched          duration_ge_60_watched_3,
+    v3.yoga_views                      yoga_views_3,
+    v3.yoga_watched                    yoga_watched_3,
+    v3.sg_views                        sg_views_3,
+    v3.sg_watched                      sg_watched_3,
+    v3.st_views                        st_views_3,
+    v3.st_watched                      st_watched_3,
+    v3.guide_day_views                 guide_day_views_3,
+    v3.first_quartile_complete_rat     first_quartile_complete_rat_3,
+    v3.second_quartile_complete_rat    second_quartile_complete_rat_3,
+    v3.third_quartile_complete_rat     third_quartile_complete_rat_3,
+    v3.fourth_quartile_complete_rat    fourth_quartile_complete_rat_3,
+    v3.num_days_watched               num_days_watched_3
+from sub_master_30_60_90 sm 
+left join 
+     (select * from video_views_30_60_90 where period = 1) v1
+     on sm.drupal_user_id = v1.drupal_user_id
+left join 
+     (select * from video_views_30_60_90 where period = 2) v2
+     on sm.drupal_user_id = v2.drupal_user_id
+left join 
+     (select * from video_views_30_60_90 where period = 3) v3
+     on sm.drupal_user_id = v3.drupal_user_id;
+
+drop table if exists guide_day_comp_30_60_90;
+
+create table guide_day_comp_30_60_90 as 
+select 
+    drupal_user_id,
+    period, 
+    count(distinct gd3.guide_day_nid) num_days_completed
+from (select gd2.*,
+    case when complete_30_day = 1 then 1
+         when complete_30_day =1 or complete_60_day =1 then 2
+         when complete_30_day =1 or complete_60_day = 1 or complete_90_day = 1 then 3
+         else 0
+    end period
+    from
+        (select gd1.*,
+               case when gd1.complete_day <= sm3.anniversary_30_date then 1 else 0 end      complete_30_day,
+               case when gd1.complete_day <= sm3.anniversary_60_date then 1 else 0 end      complete_60_day,
+               case when gd1.complete_day <= sm3.anniversary_90_date then 1 else 0 end      complete_90_day
+        from 
+            (select uid drupal_user_id,
+                content_id guide_day_nid,
+                to_timestamp(timestamp)::date complete_day
+             from drupal.flag_content where fid = 6) gd1
+        join sub_master_30_60_90 sm3
+          on gd1.drupal_user_id = sm3.drupal_user_id) gd2) gd3
+group by drupal_user_id, period;
+
+
+
+drop table if exists guide_optins_30_60_90;
+
+create table guide_optins_30_60_90 as
+select 
+    drupal_user_id,
+    period, 
+    count(distinct g3.guide_nid) num_opt_ins
+from
+    (select g2.*,
+        case when opt_in_30_day = 1 then 1
+             when opt_in_30_day =1 or opt_in_60_day =1 then 2
+             when opt_in_30_day =1 or opt_in_60_day = 1 or opt_in_90_day = 1 then 3
+             else 0
+        end period
+        from
+            (select g1.*,
+                   case when g1.opt_in_day <= sm3.anniversary_30_date then 1 else 0 end      opt_in_30_day,
+                   case when g1.opt_in_day <= sm3.anniversary_60_date then 1 else 0 end      opt_in_60_day,
+                   case when g1.opt_in_day <= sm3.anniversary_90_date then 1 else 0 end      opt_in_90_day
+            from 
+                (select uid drupal_user_id,
+                    content_id guide_nid,
+                    to_timestamp(timestamp)::date opt_in_day
+                 from drupal.flag_content where fid = 11) g1
+            join sub_master_30_60_90 sm3
+              on g1.drupal_user_id = sm3.drupal_user_id) g2) g3
+group by drupal_user_id, period;
+
+drop table if exists guide_activity_master;
+
+create table guide_activity_master as 
+select gd4.*,
+     coalesce(gd1.num_days_completed,0)        num_guide_days_completed_1,
+     coalesce(gd2.num_days_completed,0)        num_guide_days_completed_2,
+     coalesce(gd3.num_days_completed,0)        num_guide_days_completed_3
+from
+    (select sm.drupal_user_id,
+        coalesce(g1.num_opt_ins,0)              num_guide_opt_ins_1,
+        coalesce(g2.num_opt_ins,0)              num_guide_opt_ins_2,
+        coalesce(g3.num_opt_ins,0)              num_guide_opt_ins_3
+    from sub_master_30_60_90 sm 
+   left join 
+          (select * from guide_optins_30_60_90 where period = 1) g1
+          on sm.drupal_user_id = g1.drupal_user_id
+   left join 
+          (select * from guide_optins_30_60_90 where period = 2) g2
+          on sm.drupal_user_id = g2.drupal_user_id
+   left join 
+          (select * from guide_optins_30_60_90 where period = 3) g3
+          on sm.drupal_user_id = g3.drupal_user_id) gd4   
+left join 
+      (select * from guide_day_comp_30_60_90 where period = 1) gd1
+      on gd4.drupal_user_id = gd1.drupal_user_id
+ left join 
+      (select * from guide_day_comp_30_60_90 where period = 2) gd2
+      on gd4.drupal_user_id = gd2.drupal_user_id
+ left join 
+      (select * from guide_day_comp_30_60_90 where period = 3) gd3
+      on gd4.drupal_user_id = gd3.drupal_user_id;
+     
+
+
+
+drop table if exists sfss_30_60_90 cascade;
+
+create table sfss_30_60_90 as 
+select
+    sm.gcsi_user_id ,
+    sm.drupal_user_id ,
+    sm.subscription_id, 
+    sm.subscription_start_date ,
+    sm.cancel_date ,
+    sm.paid_through_date,
+    sm.anniversary_30_date ,
+    sm.anniversary_60_date ,
+    sm.anniversary_90_date ,
+    sm.anniversary_120_date ,
+    sm.cancel_age ,
+    sm.paid_through_age ,
+    sm.iv_age ,
+    sm.long_hold ,
+    sm.churn_30_day ,
+    sm.churn_60_day ,
+    sm.churn_90_day ,
+    sm.sub_30_day ,
+    sm.sub_60_day ,
+    sm.sub_90_day,
+    sm.onboarding_segment,
+    sm.onboarding_parent,
+    sm.user_behavior_segment,
+    sm.campaign_dept, 
+    vv.num_views_1 ,
+    vv.hrs_watched_1 ,
+    vv.engagement_ratio_1 ,
+    vv.yoga_engagement_ratio_1 ,
+    vv.sg_engagement_ratio_1 ,
+    vv.st_engagement_ratio_1 ,
+    vv.level_1_views_1 ,
+    vv.level_1_watched_1 ,
+    vv.level_2_views_1 ,
+    vv.level_2_watched_1 ,
+    vv.level_3_views_1 ,
+    vv.level_3_watched_1 ,
+    vv.duration_lt_15_views_1 ,
+    vv.duration_lt_15_watched_1 ,
+    vv.duration_15_to_29_views_1 ,
+    vv.duration_15_to_29_watched_1 ,
+    vv.duration_30_to_59_views_1 ,
+    vv.duration_30_to_59_watched_1 ,
+    vv.duration_ge_60_views_1 ,
+    vv.duration_ge_60_watched_1 ,
+    vv.yoga_views_1 ,
+    vv.yoga_watched_1 ,
+    vv.sg_views_1 ,
+    vv.sg_watched_1 ,
+    vv.st_views_1 ,
+    vv.st_watched_1 ,
+    vv.guide_day_views_1 ,
+    vv.first_quartile_complete_rat_1 ,
+    vv.second_quartile_complete_rat_1 ,
+    vv.third_quartile_complete_rat_1 ,
+    vv.fourth_quartile_complete_rat_1 ,
+    vv.num_days_watched_1 ,
+    vv.num_views_2 ,
+    vv.hrs_watched_2 ,
+    vv.engagement_ratio_2 ,
+    vv.yoga_engagement_ratio_2 ,
+    vv.sg_engagement_ratio_2 ,
+    vv.st_engagement_ratio_2 ,
+    vv.level_1_views_2 ,
+    vv.level_1_watched_2 ,
+    vv.level_2_views_2 ,
+    vv.level_2_watched_2 ,
+    vv.level_3_views_2 ,
+    vv.level_3_watched_2 ,
+    vv.duration_lt_15_views_2 ,
+    vv.duration_lt_15_watched_2 ,
+    vv.duration_15_to_29_views_2 ,
+    vv.duration_15_to_29_watched_2 ,
+    vv.duration_30_to_59_views_2 ,
+    vv.duration_30_to_59_watched_2 ,
+    vv.duration_ge_60_views_2 ,
+    vv.duration_ge_60_watched_2 ,
+    vv.yoga_views_2 ,
+    vv.yoga_watched_2 ,
+    vv.sg_views_2 ,
+    vv.sg_watched_2 ,
+    vv.st_views_2 ,
+    vv.st_watched_2 ,
+    vv.guide_day_views_2 ,
+    vv.first_quartile_complete_rat_2 ,
+    vv.second_quartile_complete_rat_2 ,
+    vv.third_quartile_complete_rat_2 ,
+    vv.fourth_quartile_complete_rat_2 ,
+    vv.num_days_watched_2 ,
+    vv.num_views_3 ,
+    vv.hrs_watched_3 ,
+    vv.engagement_ratio_3 ,
+    vv.yoga_engagement_ratio_3 ,
+    vv.sg_engagement_ratio_3 ,
+    vv.st_engagement_ratio_3 ,
+    vv.level_1_views_3 ,
+    vv.level_1_watched_3 ,
+    vv.level_2_views_3 ,
+    vv.level_2_watched_3 ,
+    vv.level_3_views_3 ,
+    vv.level_3_watched_3 ,
+    vv.duration_lt_15_views_3 ,
+    vv.duration_lt_15_watched_3 ,
+    vv.duration_15_to_29_views_3 ,
+    vv.duration_15_to_29_watched_3 ,
+    vv.duration_30_to_59_views_3 ,
+    vv.duration_30_to_59_watched_3 ,
+    vv.duration_ge_60_views_3 ,
+    vv.duration_ge_60_watched_3 ,
+    vv.yoga_views_3 ,
+    vv.yoga_watched_3 ,
+    vv.sg_views_3 ,
+    vv.sg_watched_3 ,
+    vv.st_views_3 ,
+    vv.st_watched_3 ,
+    vv.guide_day_views_3 ,
+    vv.first_quartile_complete_rat_3 ,
+    vv.second_quartile_complete_rat_3 ,
+    vv.third_quartile_complete_rat_3 ,
+    vv.fourth_quartile_complete_rat_3 ,
+    vv.num_days_watched_3,
+    coalesce(gm.num_guide_opt_ins_1,0)                  num_guide_opt_ins_1,
+    coalesce(gm.num_guide_days_completed_1,0)       num_guide_days_completed_1,
+    coalesce(gm.num_guide_opt_ins_2,0)                  num_guide_opt_ins_2,
+    coalesce(gm.num_guide_days_completed_2,0)       num_guide_days_completed_2,
+    coalesce(gm.num_guide_opt_ins_3,0)                  num_guide_opt_ins_3,
+    coalesce(gm.num_guide_days_completed_3,0)       num_guide_days_completed_3,
+    coalesce(pl.playlist_count,0) playlist_count 
+from sub_master_30_60_90 sm 
+left join video_views_master vv
+    on sm.drupal_user_id = vv.drupal_user_id
+left join guide_activity_master gm
+    on sm.drupal_user_id = gm.drupal_user_id
+left join (select drupal_user_id,
+           count(distinct page_nid) playlist_count
+           from common.playlist_activity 
+           group by drupal_user_id) pl
+   on sm.drupal_user_id = pl.drupal_user_id;
+
+create or replace view yoga_sfss as select * from sfss_30_60_90;
+
+
