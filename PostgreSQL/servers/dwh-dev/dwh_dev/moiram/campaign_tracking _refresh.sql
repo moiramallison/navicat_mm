@@ -7,7 +7,10 @@ create table common.campaign_tracking as
      "Sub-Type" as sub_type,
      "CID Code" as cid_code,
      "Final Link Query" as final_link_query,
-     "Reported Channel" as reported_channel
+     "Reported Channel" as reported_channel,
+     trim(split_part("Campaign", '|', 1)) campaign_segment,
+     trim(split_part("Campaign", '|', 2)) campaign_name,
+     trim(split_part("Campaign", '|', 3)) campaign_code
  from moiram.campaign_tracking);
 
 alter table common.campaign_tracking add 

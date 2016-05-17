@@ -1,3 +1,5 @@
+
+/*
 drop table if exists tmp.paid_through_dates;
 
 create table tmp.paid_through_dates as 
@@ -26,12 +28,12 @@ CREATE INDEX idx_ptd_sub ON tmp.paid_through_dates (subscription_id);
 CREATE INDEX idx_ptd_sub_ptdate ON tmp.paid_through_dates (subscription_id, paid_through_date);
 
 alter table tmp.paid_through_dates owner to dw_admin;
-
+*/
  
-  truncate table common.daily_status_y2016q1;
+  truncate table moiram.daily_status_y2015q4;
  
        
-  insert into common.daily_status_y2016q1
+  insert into moiram.daily_status_y2015q4
   select dd.day_timestamp,
       gcsi_user_id,
       ud.subscription_id,
@@ -42,8 +44,7 @@ alter table tmp.paid_through_dates owner to dw_admin;
            then coalesce(ptd.schedule_date,ud.paid_through_date)
            else coalesce(ptd.paid_through_date,ud.paid_through_date)
            end paid_through_date,
-      case when status like 'Trial%' then status
-					 when status = 'Hold' or status = 'Start/Hold' then 
+      case when status = 'Hold' or status = 'Start/Hold' then 
            case when sh.initiator in  ('CUSTOMER', 'ADMINISTRATIVE')
                 then 'Hold'
                 else 'Suspended'
@@ -72,13 +73,13 @@ alter table tmp.paid_through_dates owner to dw_admin;
       on ud.subscription_id = ptd.subscription_id and 
          day_timestamp >= ptd.schedule_date::date and
          day_timestamp < ptd.paid_through_date::date
-  where day_key >= 20160101
-    and day_timestamp < current_date::date
+  where day_key >= [$start]
+    --and day_timestamp < current_date::date
+     and day_timestamp < [$end]::date
          -- there are cases where cancel_date is not null and status is still active
          -- because of comps
    and (cancel_date is null or 
-        cancel_date >= '20160101' or
-        ud.paid_through_date >= '20160101' or
+        cancel_date >= [$start] or
+        ud.paid_through_date >= [$start] or
         status in( 'Active', 'Lapsed', 'Suspended'));
-
 
